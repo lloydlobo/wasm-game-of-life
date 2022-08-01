@@ -88,7 +88,7 @@ impl Universe {
 
         self.cells = next;
     }
-    
+
     /// Finally, we define a constructor that initializes the universe with an interesting pattern of live and dead cells, as well as a render method:
     pub fn new() -> Universe {
         let width = 64;
@@ -131,7 +131,8 @@ impl fmt::Display for Universe {
                 let symbol = if cell == Cell::Dead { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
-            writeln!(f)?; // write!(f, "\n")?;
+            // write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())
