@@ -1,4 +1,5 @@
 mod utils;
+use std::fmt;
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -35,9 +36,7 @@ impl Universe {
 
     /// In order to calculate the next state of a cell, we need to get a count of how many of its neighbors are alive. Let's write a live_neighbor_count method to do just that!
     /// The live_neighbor_count method uses deltas and modulo to avoid special casing the edges of the universe with ifs.
-    ///
     /// # Explanation
-    ///
     /// ## % operator
     /// - When applying a delta of -1, we add self.height - 1
     ///     and let the modulo do its thing,
@@ -52,12 +51,11 @@ impl Universe {
                     continue;
                 }
                 // Create an infinite cylindrical overlapped universe
-                // Bypasses the need for infinite storage
-                // % helps to return a zero value at the edge of the next cell
+                // Bypasses the need for infinite storage % helps to return a zero value at the edge of the next cell
                 let neighbour_row: u32 = (row + delta_row) % self.height;
                 let neighbour_column: u32 = (column + delta_row) % self.width;
-
                 let idx: usize = self.get_index(neighbour_row, neighbour_column);
+
                 count += self.cells[idx] as u8;
             }
         }
@@ -66,7 +64,7 @@ impl Universe {
     }
 
     /// Public methods, exported to JavaScript.
-    // compute the next generation from the current on
+    /// compute the next generation from the current on
     pub fn tick(&mut self) {
         let mut next = self.cells.clone();
 
@@ -87,6 +85,56 @@ impl Universe {
                 next[idx] = next_cell;
             }
         }
+
+        self.cells = next;
+    }
+    
+    /// Finally, we define a constructor that initializes the universe with an interesting pattern of live and dead cells, as well as a render method:
+    pub fn new() -> Universe {
+        let width = 64;
+        let height = 64;
+
+        let cells = (0..width * height)
+            .map(|i| {
+                if i % 2 == 0 || i % 7 == 0 {
+                    Cell::Alive
+                } else {
+                    Cell::Dead
+                }
+            })
+            .collect();
+
+        Universe {
+            width,
+            height,
+            cells,
+        }
+    }
+
+    pub fn render(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Default for Universe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// The idea is to write the universe line by line as text, and for each cell that is alive, print the Unicode character ◼ ("black medium square"). For dead cells, we'll print ◻ (a "white medium square").
+/// By implementing the Display trait from Rust's standard library, we can add a way to format a structure in a user-facing manner. This will also automatically give us a to_string method.
+impl fmt::Display for Universe {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for line in self.cells.as_slice().chunks(self.width as usize) {
+            for &cell in line {
+                let symbol = if cell == Cell::Dead { '◻' } else { '◼' };
+                write!(f, "{}", symbol)?;
+            }
+            writeln!(f)?; // write!(f, "\n")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -98,7 +146,7 @@ impl Universe {
   // Rule 2: Any live cell with two or three live neighbours
   // lives on to the next generation.
   (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
-  
+
   // Rule 3: Any live cell with more than three live
   // neighbours dies, as if by overpopulation.
   (Cell::Alive, x) if x > 3 => Cell::Dead,
